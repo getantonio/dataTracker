@@ -1,0 +1,6 @@
+# API Keys
+src/config/api-keys.ts
+
+# Environment variables
+.env
+.env.local 
