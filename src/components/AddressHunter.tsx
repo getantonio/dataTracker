@@ -13,7 +13,7 @@ const AddressHunter = ({ onAddAddress }: AddressHunterProps) => {
   const [error, setError] = useState<string | null>(null);
   const [volumeFilter, setVolumeFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all');
-  const [sortBy, setSortBy] = useState<'volume' | 'trades' | 'recent' | 'winRate'>('volume');
+  const [sortBy, setSortBy] = useState<'volume' | 'trades' | 'recent' | 'winRate' | 'profitLoss'>('volume');
   const [isFiltersOpen, setIsFiltersOpen] = useState(true);
   const [isTraderListOpen, setIsTraderListOpen] = useState(true);
 
@@ -69,9 +69,14 @@ const AddressHunter = ({ onAddAddress }: AddressHunterProps) => {
         return b.trades - a.trades;
       }
       if (sortBy === 'winRate') {
-        const winRateA = parseFloat(a.winRate);
-        const winRateB = parseFloat(b.winRate);
+        const winRateA = parseFloat(a.winRate.replace('%', ''));
+        const winRateB = parseFloat(b.winRate.replace('%', ''));
         return winRateB - winRateA;
+      }
+      if (sortBy === 'profitLoss') {
+        const plA = parseFloat(a.profitLoss.replace(/[^0-9.-]/g, ''));
+        const plB = parseFloat(b.profitLoss.replace(/[^0-9.-]/g, ''));
+        return plB - plA;
       }
       // Sort by recent
       return b.lastTx!.timestamp - a.lastTx!.timestamp;
@@ -135,9 +140,10 @@ const AddressHunter = ({ onAddAddress }: AddressHunterProps) => {
               className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 
                        text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
+              <option value="profitLoss">Sort by P/L</option>
               <option value="volume">Sort by Volume</option>
-              <option value="trades">Sort by Trades</option>
               <option value="winRate">Sort by Win Rate</option>
+              <option value="trades">Sort by Trades</option>
               <option value="recent">Sort by Recent</option>
             </select>
           </div>
