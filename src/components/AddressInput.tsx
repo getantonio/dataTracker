@@ -39,17 +39,17 @@ const AddressInput = () => {
   };
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Plus className="h-6 w-6 text-blue-600" />
-          Add Address to Monitor
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Plus className="h-5 w-5 text-blue-600" />
+          Add Address
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2 mb-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-gray-700">
               Ethereum Address
             </label>
             <input
@@ -57,11 +57,11 @@ const AddressInput = () => {
               value={newAddress}
               onChange={(e) => setNewAddress(e.target.value)}
               placeholder="0x..."
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-gray-700">
               Label (optional)
             </label>
             <input
@@ -69,7 +69,7 @@ const AddressInput = () => {
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="e.g., Main Trading Wallet"
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full p-1.5 text-sm border rounded-md focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </div>

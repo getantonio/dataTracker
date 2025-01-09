@@ -79,22 +79,22 @@ const TradeDetailsTracker = () => {
   ]);
 
   return (
-    <Card className="w-full max-w-5xl mx-auto shadow-lg">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between p-2">
+    <Card className="shadow">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-8 w-8 text-blue-600" />
+            <TrendingUp className="h-5 w-5 text-blue-600" />
             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
-              Detailed Trade Analysis
+              Trade Analysis
             </span>
           </div>
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3">
         {recentTrades.map((trade, index) => (
-          <Card key={index} className="border border-gray-200 shadow-md hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6">
+          <Card key={index} className="border border-gray-200">
+            <CardContent className="p-4">
               {/* Trade Header */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">

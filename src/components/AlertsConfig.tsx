@@ -28,21 +28,21 @@ const AlertsConfig = () => {
   };
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bell className="h-6 w-6 text-blue-600" />
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Bell className="h-5 w-5 text-blue-600" />
           Alert Configuration
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <div className="space-y-2">
           {/* Price Alert */}
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-2 border rounded-lg">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-green-600" />
-                <span className="font-medium">Price Alert</span>
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Price Alert</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -58,17 +58,17 @@ const AlertsConfig = () => {
               type="number"
               value={alerts[0].threshold}
               onChange={(e) => updateThreshold(0, Number(e.target.value))}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-1.5 text-sm border rounded-md"
               placeholder="Enter price threshold"
             />
           </div>
 
           {/* Volume Alert */}
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-2 border rounded-lg">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <span className="font-medium">Volume Alert</span>
+                <Activity className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium">Volume Alert</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -84,17 +84,17 @@ const AlertsConfig = () => {
               type="number"
               value={alerts[1].threshold}
               onChange={(e) => updateThreshold(1, Number(e.target.value))}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-1.5 text-sm border rounded-md"
               placeholder="Enter volume threshold (ETH)"
             />
           </div>
 
           {/* Gas Alert */}
-          <div className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-2 border rounded-lg">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Fuel className="h-5 w-5 text-orange-600" />
-                <span className="font-medium">Gas Price Alert</span>
+                <Fuel className="h-4 w-4 text-orange-600" />
+                <span className="text-sm font-medium">Gas Price Alert</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -110,7 +110,7 @@ const AlertsConfig = () => {
               type="number"
               value={alerts[2].threshold}
               onChange={(e) => updateThreshold(2, Number(e.target.value))}
-              className="w-full p-2 border rounded-md"
+              className="w-full p-1.5 text-sm border rounded-md"
               placeholder="Enter gas price threshold (gwei)"
             />
           </div>
