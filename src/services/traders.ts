@@ -88,7 +88,7 @@ export async function findTopTraders(_timeframe: string): Promise<Trader[]> {
     return Array.from(traders.values())
       .filter(trader => trader.trades > 1)
       .map(({ address, volume, trades, wins, profitLoss, lastTx }) => ({
-        address: address.slice(0, 6) + '...' + address.slice(-4),
+        address,
         totalVolume: volume > 1000000 
           ? `$${(volume / 1000000).toFixed(1)}M` 
           : volume > 1000 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, ExternalLink, AlertCircle, ChevronDown } from 'lucide-react';
+import { Plus, ExternalLink, AlertCircle, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
 import { findTopTraders, type Trader } from '../services/traders';
 
 interface AddressHunterProps {
@@ -183,12 +183,15 @@ const AddressHunter = ({ onAddAddress }: AddressHunterProps) => {
                   <div key={trader.address} className="bg-zinc-800/50 rounded-lg p-2">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs text-zinc-100">{trader.address}</span>
+                        <span className="text-xs text-zinc-100 font-mono">
+                          {trader.address.slice(0, 6)}...{trader.address.slice(-4)}
+                        </span>
                         <a 
                           href={`https://etherscan.io/address/${trader.address}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-zinc-500 hover:text-zinc-400"
+                          className="text-zinc-500 hover:text-zinc-400 flex-shrink-0"
+                          title={trader.address}
                         >
                           <ExternalLink className="h-3 w-3" />
                         </a>
@@ -209,11 +212,29 @@ const AddressHunter = ({ onAddAddress }: AddressHunterProps) => {
                       </div>
                       <div>
                         <div className="text-zinc-500">P/L</div>
-                        <div className="text-green-400">{trader.profitLoss}</div>
+                        <div className="flex items-center gap-1">
+                          {parseFloat(trader.profitLoss) > 0 ? (
+                            <TrendingUp className="h-3 w-3 text-green-400" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-400" />
+                          )}
+                          <span className={parseFloat(trader.profitLoss) > 0 ? 'text-green-400' : 'text-red-400'}>
+                            {trader.profitLoss}
+                          </span>
+                        </div>
                       </div>
                       <div>
                         <div className="text-zinc-500">Win Rate</div>
-                        <div className="text-zinc-300">{trader.winRate}</div>
+                        <div className="flex items-center gap-1">
+                          {parseFloat(trader.winRate) > 50 ? (
+                            <TrendingUp className="h-3 w-3 text-green-400" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-400" />
+                          )}
+                          <span className={parseFloat(trader.winRate) > 50 ? 'text-green-400' : 'text-red-400'}>
+                            {trader.winRate}
+                          </span>
+                        </div>
                       </div>
                       <div>
                         <div className="text-zinc-500">Last Active</div>

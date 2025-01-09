@@ -16,4 +16,16 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+/* Add these styles */
+.overflow-x-auto {
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 } 

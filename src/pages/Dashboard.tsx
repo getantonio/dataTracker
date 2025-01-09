@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Search, ChevronDown, ExternalLink } from 'lucide-react';
+import { Search, ChevronDown, ExternalLink, ArrowUpDown } from 'lucide-react';
 import AddressHunter from '../components/AddressHunter';
 import { findTopTraders, type Trader } from '../services/traders';
+import { TradeDetailsTracker } from '../components/TradeDetailsTracker';
 
 interface WatchlistItem {
   address: string;
@@ -36,6 +37,8 @@ export const Dashboard = () => {
   const [watchlistData, setWatchlistData] = useState<Record<string, Trader>>({});
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [watchlistSort, setWatchlistSort] = useState<'profitLoss' | 'volume' | 'winRate' | 'trades' | 'recent'>('profitLoss');
+  const [selectedTrader, setSelectedTrader] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Save watchlist to localStorage
   useEffect(() => {
@@ -95,30 +98,37 @@ export const Dashboard = () => {
   const sortedWatchlist = [...watchlist].sort((a, b) => {
     const traderA = watchlistData[a.address];
     const traderB = watchlistData[b.address];
+    let comparison = 0;
 
     if (watchlistSort === 'profitLoss') {
       const plA = parseFloat((traderA?.profitLoss || a.lastProfitLoss || '0').replace(/[^0-9.-]/g, ''));
       const plB = parseFloat((traderB?.profitLoss || b.lastProfitLoss || '0').replace(/[^0-9.-]/g, ''));
-      return plB - plA;
+      comparison = plB - plA;
     }
     if (watchlistSort === 'volume') {
       const volA = parseFloat((traderA?.totalVolume || a.lastVolume || '0').replace(/[^0-9.]/g, ''));
       const volB = parseFloat((traderB?.totalVolume || b.lastVolume || '0').replace(/[^0-9.]/g, ''));
       const unitA = (traderA?.totalVolume || a.lastVolume || '').includes('M') ? 1000 : 1;
       const unitB = (traderB?.totalVolume || b.lastVolume || '').includes('M') ? 1000 : 1;
-      return (volB * unitB) - (volA * unitA);
+      comparison = (volB * unitB) - (volA * unitA);
     }
     if (watchlistSort === 'winRate') {
       const wrA = parseFloat((traderA?.winRate || a.lastWinRate || '0').replace('%', ''));
       const wrB = parseFloat((traderB?.winRate || b.lastWinRate || '0').replace('%', ''));
-      return wrB - wrA;
+      comparison = wrB - wrA;
     }
     if (watchlistSort === 'trades') {
-      return (traderB?.trades || 0) - (traderA?.trades || 0);
+      comparison = (traderB?.trades || 0) - (traderA?.trades || 0);
     }
     // Sort by recent
-    return (traderB?.lastTx?.timestamp || 0) - (traderA?.lastTx?.timestamp || 0);
+    comparison = (traderB?.lastTx?.timestamp || 0) - (traderA?.lastTx?.timestamp || 0);
+
+    return sortDirection === 'desc' ? comparison : -comparison;
   });
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'desc' ? 'asc' : 'desc');
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -160,18 +170,28 @@ export const Dashboard = () => {
                   }`}
                 />
               </button>
-              <select
-                value={watchlistSort}
-                onChange={(e) => setWatchlistSort(e.target.value as typeof watchlistSort)}
-                className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 
-                         text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500 ml-2"
-              >
-                <option value="profitLoss">Sort by P/L</option>
-                <option value="volume">Sort by Volume</option>
-                <option value="winRate">Sort by Win Rate</option>
-                <option value="trades">Sort by Trades</option>
-                <option value="recent">Sort by Recent</option>
-              </select>
+              <div className="flex items-center gap-2">
+                <select
+                  value={watchlistSort}
+                  onChange={(e) => setWatchlistSort(e.target.value as typeof watchlistSort)}
+                  className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 
+                           text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="profitLoss">Sort by P/L</option>
+                  <option value="volume">Sort by Volume</option>
+                  <option value="winRate">Sort by Win Rate</option>
+                  <option value="trades">Sort by Trades</option>
+                  <option value="recent">Sort by Recent</option>
+                </select>
+                <button
+                  onClick={toggleSortDirection}
+                  className="p-1 text-zinc-400 hover:text-zinc-300"
+                >
+                  <ArrowUpDown className={`h-4 w-4 transition-transform ${
+                    sortDirection === 'asc' ? 'rotate-180' : ''
+                  }`} />
+                </button>
+              </div>
               <div className="text-xs text-zinc-500 ml-auto">
                 {watchlist.length} addresses
               </div>
@@ -190,16 +210,22 @@ export const Dashboard = () => {
                       return (
                         <div 
                           key={item.address}
-                          className="bg-zinc-800/50 rounded-lg p-2"
+                          className={`bg-zinc-800/50 rounded-lg p-2 cursor-pointer transition-colors ${
+                            selectedTrader === item.address ? 'ring-1 ring-blue-500' : ''
+                          }`}
+                          onClick={() => setSelectedTrader(item.address)}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-zinc-100">{item.address}</span>
+                              <span className="text-xs text-zinc-100 font-mono">
+                                {item.address.slice(0, 6)}...{item.address.slice(-4)}
+                              </span>
                               <a 
                                 href={`https://etherscan.io/address/${item.address}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-zinc-500 hover:text-zinc-400"
+                                className="text-zinc-500 hover:text-zinc-400 flex-shrink-0"
+                                title={item.address}
                               >
                                 <ExternalLink className="h-3 w-3" />
                               </a>
@@ -291,8 +317,7 @@ export const Dashboard = () => {
 
         {/* Right Sidebar */}
         <aside className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-          <h2 className="text-sm font-medium text-zinc-100 mb-3">Details</h2>
-          <p className="text-xs text-zinc-500">Select a trader to view details</p>
+          <TradeDetailsTracker address={selectedTrader} />
         </aside>
       </div>
     </div>
