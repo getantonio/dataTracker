@@ -1,36 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  TrendingUp, TrendingDown, ExternalLink, X, ArrowRight, Wallet, Fuel 
+  TrendingUp, TrendingDown, ExternalLink, X, ArrowRight, Wallet, Fuel,
+  Coins
 } from 'lucide-react';
 import { API_KEYS } from '../config/api-keys';
-
-interface Trade {
-  hash: string;
-  timestamp: number;
-  type: 'buy' | 'sell';
-  amount: string;
-  price: string;
-  status: 'completed' | 'pending' | 'failed';
-  profitLoss?: string;
-  gas?: string;
-  exchange?: string;
-  token?: string;
-  to: string;
-  from: string;
-  blockNumber: string;
-  ipAddress?: string;
-  location?: string;
-}
-
-interface TraderStats {
-  totalTrades: number;
-  successfulTrades: number;
-  failedTrades: number;
-  pendingTrades: number;
-  totalVolume: string;
-  avgTradeSize: string;
-  lastTradeTime: string;
-}
+import { TradingChart } from './TradingChart';
+import { Trade } from '../types';
 
 interface TradeDetailsProps {
   address: string | null;
@@ -39,6 +14,13 @@ interface TradeDetailsProps {
 interface ExpandedTradeProps {
   trade: Trade;
   onClose: () => void;
+}
+
+interface TradeFilters {
+  timeframe: '1h' | '24h' | '7d' | 'all';
+  type: 'all' | 'buy' | 'sell';
+  token: string;
+  minAmount: number;
 }
 
 const ExpandedTrade = ({ trade, onClose }: ExpandedTradeProps) => {
@@ -159,13 +141,19 @@ const ExpandedTrade = ({ trade, onClose }: ExpandedTradeProps) => {
 
 export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [stats, setStats] = useState<TraderStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [filters, setFilters] = useState<TradeFilters>({
+    timeframe: 'all',
+    type: 'all',
+    token: 'all',
+    minAmount: 0
+  });
+  const [groupByToken, setGroupByToken] = useState(false);
+  const [selectedPairTrade, setSelectedPairTrade] = useState<Trade | null>(null);
 
   useEffect(() => {
     setTrades([]);
-    setStats(null);
   }, [address]);
 
   useEffect(() => {
@@ -267,24 +255,6 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
 
         setTrades(sortedTrades);
         
-        // Update stats
-        if (sortedTrades.length > 0) {
-          const totalVolume = sortedTrades.reduce((acc, trade) => {
-            const amount = parseFloat(trade.amount.split(' ')[0]);
-            return acc + (isNaN(amount) ? 0 : amount);
-          }, 0);
-
-          setStats({
-            totalTrades: sortedTrades.length,
-            successfulTrades: sortedTrades.filter(t => t.status === 'completed').length,
-            failedTrades: sortedTrades.filter(t => t.status === 'failed').length,
-            pendingTrades: 0,
-            totalVolume: `${totalVolume.toFixed(2)} transactions`,
-            avgTradeSize: `${(totalVolume / sortedTrades.length).toFixed(2)} avg`,
-            lastTradeTime: new Date(sortedTrades[0].timestamp).toLocaleString()
-          });
-        }
-
       } catch (error) {
         console.error('Error fetching trades:', error);
       } finally {
@@ -297,6 +267,90 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
     return () => clearInterval(interval);
   }, [address]);
 
+  const tokenStats = useMemo(() => {
+    const stats = new Map<string, {
+      totalVolume: number;
+      trades: number;
+      buys: number;
+      sells: number;
+      avgSize: number;
+    }>();
+
+    trades.forEach(trade => {
+      const token = trade.token || 'Unknown';
+      const amount = parseFloat(trade.amount.split(' ')[0]);
+      
+      if (!stats.has(token)) {
+        stats.set(token, {
+          totalVolume: 0,
+          trades: 0,
+          buys: 0,
+          sells: 0,
+          avgSize: 0
+        });
+      }
+
+      const tokenStat = stats.get(token)!;
+      tokenStat.totalVolume += amount;
+      tokenStat.trades += 1;
+      tokenStat.buys += trade.type === 'buy' ? 1 : 0;
+      tokenStat.sells += trade.type === 'sell' ? 1 : 0;
+      tokenStat.avgSize = tokenStat.totalVolume / tokenStat.trades;
+    });
+
+    return stats;
+  }, [trades]);
+
+  const filteredTrades = useMemo(() => {
+    return trades.filter(trade => {
+      // Timeframe filter
+      if (filters.timeframe !== 'all') {
+        const hours = {
+          '1h': 1,
+          '24h': 24,
+          '7d': 168
+        }[filters.timeframe];
+        
+        if ((Date.now() - trade.timestamp) > hours * 3600000) {
+          return false;
+        }
+      }
+
+      // Type filter
+      if (filters.type !== 'all' && trade.type !== filters.type) {
+        return false;
+      }
+
+      // Token filter
+      if (filters.token !== 'all' && trade.token !== filters.token) {
+        return false;
+      }
+
+      // Amount filter
+      const amount = parseFloat(trade.amount.split(' ')[0]);
+      if (amount < filters.minAmount) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [trades, filters]);
+
+  const groupedTrades = useMemo(() => {
+    if (!groupByToken) return null;
+
+    const groups = new Map<string, Trade[]>();
+    filteredTrades.forEach(trade => {
+      const token = trade.token || 'Unknown';
+      if (!groups.has(token)) {
+        groups.set(token, []);
+      }
+      groups.get(token)!.push(trade);
+    });
+
+    return groups;
+  }, [filteredTrades, groupByToken]);
+
   if (!address) {
     return (
       <div className="text-center py-8 text-zinc-500 text-xs">
@@ -308,126 +362,281 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-zinc-100">Trade History</h3>
-        <div className="text-xs text-zinc-500">
-          {loading ? 'Refreshing...' : 'Auto-updates every 15s'}
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-zinc-100">Trade History</h3>
+          {loading && <span className="text-xs text-zinc-500">Refreshing...</span>}
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            value={filters.timeframe}
+            onChange={(e) => setFilters(prev => ({ ...prev, timeframe: e.target.value as TradeFilters['timeframe'] }))}
+            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+          >
+            <option value="all">All Time</option>
+            <option value="1h">Last Hour</option>
+            <option value="24h">Last 24h</option>
+            <option value="7d">Last 7d</option>
+          </select>
+
+          <select
+            value={filters.type}
+            onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value as TradeFilters['type'] }))}
+            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs"
+          >
+            <option value="all">All Types</option>
+            <option value="buy">Buys</option>
+            <option value="sell">Sells</option>
+          </select>
+
+          <button
+            onClick={() => setGroupByToken(prev => !prev)}
+            className={`p-1.5 rounded ${
+              groupByToken ? 'bg-blue-500/20 text-blue-400' : 'text-zinc-400 hover:text-zinc-300'
+            }`}
+            title="Group by Token"
+          >
+            <Coins className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* Stats Section */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-2 p-2 bg-zinc-800/30 rounded-lg">
-          <div className="text-[11px]">
-            <div className="text-zinc-500">Total Trades</div>
-            <div className="text-zinc-300">{stats.totalTrades}</div>
-          </div>
-          <div className="text-[11px]">
-            <div className="text-zinc-500">Success Rate</div>
-            <div className="text-green-400">
-              {((stats.successfulTrades / stats.totalTrades) * 100).toFixed(0)}%
-            </div>
-          </div>
-          <div className="text-[11px]">
-            <div className="text-zinc-500">Total Volume</div>
-            <div className="text-zinc-300">{stats.totalVolume}</div>
-          </div>
-          <div className="text-[11px]">
-            <div className="text-zinc-500">Avg Trade</div>
-            <div className="text-zinc-300">{stats.avgTradeSize}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Trades List */}
-      <div className="space-y-2 max-h-[500px] overflow-y-auto">
-        {trades.map((trade) => (
+      <div className="grid grid-cols-4 gap-2">
+        {Array.from(tokenStats.entries()).map(([token, stats]) => (
           <div 
-            key={trade.hash}
-            className="bg-zinc-800/50 rounded-lg p-2 text-xs cursor-pointer 
-                     hover:bg-zinc-800 transition-colors"
-            onClick={() => setSelectedTrade(trade)}
+            key={token}
+            className="bg-zinc-800/30 rounded-lg p-2 cursor-pointer hover:bg-zinc-800/50"
+            onClick={() => setFilters(prev => ({ ...prev, token: token === filters.token ? 'all' : token }))}
           >
-            <div className="flex flex-col gap-2">
-              {/* Top Row - Main Trade Info */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {trade.type === 'buy' ? (
-                    <TrendingUp className="h-3 w-3 text-green-400 flex-shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-400 flex-shrink-0" />
-                  )}
-                  <span className="font-medium text-zinc-100">
-                    {trade.type.toUpperCase()} {trade.token}
-                  </span>
-                  <span className="text-zinc-300">{trade.amount}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500">
-                    {new Date(trade.timestamp).toLocaleTimeString()}
-                  </span>
-                  <a 
-                    href={`https://etherscan.io/tx/${trade.hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-zinc-500 hover:text-zinc-400"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-zinc-100">{token}</span>
+              <span className="text-[11px] text-zinc-400">{stats.trades} trades</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1 text-[11px]">
+              <div>
+                <span className="text-zinc-500">Volume: </span>
+                <span className="text-zinc-300">{stats.totalVolume.toFixed(2)}</span>
               </div>
-
-              {/* Middle Row - Price & Gas Info */}
-              <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <span className="text-zinc-500">Price:</span>{' '}
-                    <span className="text-zinc-300">{trade.price}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Gas:</span>{' '}
-                    <span className="text-zinc-300">{trade.gas}</span>
-                  </div>
-                  {trade.profitLoss && (
-                    <div>
-                      <span className="text-zinc-500">P/L:</span>{' '}
-                      <span className={trade.profitLoss.startsWith('+') ? 
-                        'text-green-400' : 'text-red-400'}>
-                        {trade.profitLoss}
-                      </span>
-                    </div>
-                  )}
-                </div>
+              <div>
+                <span className="text-zinc-500">Avg Size: </span>
+                <span className="text-zinc-300">{stats.avgSize.toFixed(2)}</span>
               </div>
-
-              {/* Bottom Row - Addresses */}
-              <div className="flex items-center gap-2 text-[11px] border-t border-zinc-800/50 pt-2">
-                <span className="text-zinc-500">From:</span>
-                <a 
-                  href={`https://etherscan.io/address/${trade.from}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 font-mono"
-                  onClick={e => e.stopPropagation()}
-                  title={trade.from}
-                >
-                  {trade.from.slice(0, 6)}...{trade.from.slice(-4)}
-                </a>
-                <span className="text-zinc-500">To:</span>
-                <a 
-                  href={`https://etherscan.io/address/${trade.to}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 font-mono"
-                  onClick={e => e.stopPropagation()}
-                  title={trade.to}
-                >
-                  {trade.to.slice(0, 6)}...{trade.to.slice(-4)}
-                </a>
+              <div>
+                <span className="text-zinc-500">Buys: </span>
+                <span className="text-green-400">{stats.buys}</span>
+              </div>
+              <div>
+                <span className="text-zinc-500">Sells: </span>
+                <span className="text-red-400">{stats.sells}</span>
               </div>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="space-y-2 max-h-[600px] overflow-y-auto">
+        {groupByToken ? (
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from(groupedTrades?.entries() || []).map(([token, trades]) => (
+              <div key={token} className="space-y-2">
+                <div className="sticky top-0 bg-zinc-900 py-1 px-2 rounded flex items-center justify-between">
+                  <span className="text-xs font-medium text-zinc-100">{token}</span>
+                  <span className="text-[11px] text-zinc-400">{trades.length} trades</span>
+                </div>
+                {trades.map(trade => (
+                  <div 
+                    key={trade.hash}
+                    className="bg-zinc-800/50 rounded-lg p-2 text-xs cursor-pointer 
+                             hover:bg-zinc-800 transition-colors"
+                    onClick={() => setSelectedTrade(trade)}
+                  >
+                    <div className="flex flex-col gap-2">
+                      {/* Top Row - Main Trade Info */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {trade.type === 'buy' ? (
+                            <TrendingUp className="h-3 w-3 text-green-400 flex-shrink-0" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3 text-red-400 flex-shrink-0" />
+                          )}
+                          <span 
+                            className="font-medium text-zinc-100 cursor-pointer hover:text-blue-400"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPairTrade(trade);
+                            }}
+                          >
+                            {trade.type.toUpperCase()} {trade.token}
+                          </span>
+                          <span className="text-zinc-300">{trade.amount}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-500">
+                            {new Date(trade.timestamp).toLocaleTimeString()}
+                          </span>
+                          <a 
+                            href={`https://etherscan.io/tx/${trade.hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-zinc-500 hover:text-zinc-400"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Middle Row - Price & Gas Info */}
+                      <div className="flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <span className="text-zinc-500">Price:</span>{' '}
+                            <span className="text-zinc-300">{trade.price}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-500">Gas:</span>{' '}
+                            <span className="text-zinc-300">{trade.gas}</span>
+                          </div>
+                          {trade.profitLoss && (
+                            <div>
+                              <span className="text-zinc-500">P/L:</span>{' '}
+                              <span className={trade.profitLoss.startsWith('+') ? 
+                                'text-green-400' : 'text-red-400'}>
+                                {trade.profitLoss}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Bottom Row - Addresses */}
+                      <div className="flex items-center gap-2 text-[11px] border-t border-zinc-800/50 pt-2">
+                        <span className="text-zinc-500">From:</span>
+                        <a 
+                          href={`https://etherscan.io/address/${trade.from}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 font-mono"
+                          onClick={e => e.stopPropagation()}
+                          title={trade.from}
+                        >
+                          {trade.from.slice(0, 6)}...{trade.from.slice(-4)}
+                        </a>
+                        <span className="text-zinc-500">To:</span>
+                        <a 
+                          href={`https://etherscan.io/address/${trade.to}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 font-mono"
+                          onClick={e => e.stopPropagation()}
+                          title={trade.to}
+                        >
+                          {trade.to.slice(0, 6)}...{trade.to.slice(-4)}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {filteredTrades.map(trade => (
+              <div 
+                key={trade.hash}
+                className="bg-zinc-800/50 rounded-lg p-2 text-xs cursor-pointer 
+                         hover:bg-zinc-800 transition-colors"
+                onClick={() => setSelectedTrade(trade)}
+              >
+                <div className="flex flex-col gap-2">
+                  {/* Top Row - Main Trade Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {trade.type === 'buy' ? (
+                        <TrendingUp className="h-3 w-3 text-green-400 flex-shrink-0" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-red-400 flex-shrink-0" />
+                      )}
+                      <span 
+                        className="font-medium text-zinc-100 cursor-pointer hover:text-blue-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPairTrade(trade);
+                        }}
+                      >
+                        {trade.type.toUpperCase()} {trade.token}
+                      </span>
+                      <span className="text-zinc-300">{trade.amount}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-zinc-500">
+                        {new Date(trade.timestamp).toLocaleTimeString()}
+                      </span>
+                      <a 
+                        href={`https://etherscan.io/tx/${trade.hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-zinc-500 hover:text-zinc-400"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Middle Row - Price & Gas Info */}
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <span className="text-zinc-500">Price:</span>{' '}
+                        <span className="text-zinc-300">{trade.price}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500">Gas:</span>{' '}
+                        <span className="text-zinc-300">{trade.gas}</span>
+                      </div>
+                      {trade.profitLoss && (
+                        <div>
+                          <span className="text-zinc-500">P/L:</span>{' '}
+                          <span className={trade.profitLoss.startsWith('+') ? 
+                            'text-green-400' : 'text-red-400'}>
+                            {trade.profitLoss}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Row - Addresses */}
+                  <div className="flex items-center gap-2 text-[11px] border-t border-zinc-800/50 pt-2">
+                    <span className="text-zinc-500">From:</span>
+                    <a 
+                      href={`https://etherscan.io/address/${trade.from}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 font-mono"
+                      onClick={e => e.stopPropagation()}
+                      title={trade.from}
+                    >
+                      {trade.from.slice(0, 6)}...{trade.from.slice(-4)}
+                    </a>
+                    <span className="text-zinc-500">To:</span>
+                    <a 
+                      href={`https://etherscan.io/address/${trade.to}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:text-blue-300 font-mono"
+                      onClick={e => e.stopPropagation()}
+                      title={trade.to}
+                    >
+                      {trade.to.slice(0, 6)}...{trade.to.slice(-4)}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Expanded Trade View */}
@@ -435,6 +644,15 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
         <ExpandedTrade 
           trade={selectedTrade} 
           onClose={() => setSelectedTrade(null)} 
+        />
+      )}
+
+      {/* Chart Modal */}
+      {selectedPairTrade && (
+        <TradingChart
+          token={selectedPairTrade.token || 'ETH'}
+          trade={selectedPairTrade}
+          onClose={() => setSelectedPairTrade(null)}
         />
       )}
     </div>

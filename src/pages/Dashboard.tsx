@@ -151,174 +151,173 @@ export const Dashboard = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="p-4 grid grid-cols-[1fr,350px] gap-3">
-        <div className="space-y-3">
-          <AddressHunter onAddAddress={handleAddToWatchlist} />
+      {/* Main Content - New Layout */}
+      <div className="p-4 space-y-3">
+        {/* Top Section - AddressHunter */}
+        <AddressHunter onAddAddress={handleAddToWatchlist} />
 
-          {/* Watchlist */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-sm font-medium text-zinc-100">Watchlist</h2>
-              <button
-                onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
-                className="text-zinc-400 hover:text-zinc-300 transition-colors"
+        {/* Middle Section - Watchlist */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-sm font-medium text-zinc-100">Watchlist</h2>
+            <button
+              onClick={() => setIsWatchlistOpen(!isWatchlistOpen)}
+              className="text-zinc-400 hover:text-zinc-300 transition-colors"
+            >
+              <ChevronDown 
+                className={`h-4 w-4 transition-transform duration-200 ${
+                  isWatchlistOpen ? 'transform rotate-0' : 'transform rotate-180'
+                }`}
+              />
+            </button>
+            <div className="flex items-center gap-2">
+              <select
+                value={watchlistSort}
+                onChange={(e) => setWatchlistSort(e.target.value as typeof watchlistSort)}
+                className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 
+                         text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform duration-200 ${
-                    isWatchlistOpen ? 'transform rotate-0' : 'transform rotate-180'
-                  }`}
-                />
+                <option value="profitLoss">Sort by P/L</option>
+                <option value="volume">Sort by Volume</option>
+                <option value="winRate">Sort by Win Rate</option>
+                <option value="trades">Sort by Trades</option>
+                <option value="recent">Sort by Recent</option>
+              </select>
+              <button
+                onClick={toggleSortDirection}
+                className="p-1 text-zinc-400 hover:text-zinc-300"
+              >
+                <ArrowUpDown className={`h-4 w-4 transition-transform ${
+                  sortDirection === 'asc' ? 'rotate-180' : ''
+                }`} />
               </button>
-              <div className="flex items-center gap-2">
-                <select
-                  value={watchlistSort}
-                  onChange={(e) => setWatchlistSort(e.target.value as typeof watchlistSort)}
-                  className="text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1 
-                           text-zinc-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="profitLoss">Sort by P/L</option>
-                  <option value="volume">Sort by Volume</option>
-                  <option value="winRate">Sort by Win Rate</option>
-                  <option value="trades">Sort by Trades</option>
-                  <option value="recent">Sort by Recent</option>
-                </select>
-                <button
-                  onClick={toggleSortDirection}
-                  className="p-1 text-zinc-400 hover:text-zinc-300"
-                >
-                  <ArrowUpDown className={`h-4 w-4 transition-transform ${
-                    sortDirection === 'asc' ? 'rotate-180' : ''
-                  }`} />
-                </button>
-              </div>
-              <div className="text-xs text-zinc-500 ml-auto">
-                {watchlist.length} addresses
-              </div>
             </div>
+            <div className="text-xs text-zinc-500 ml-auto">
+              {watchlist.length} addresses
+            </div>
+          </div>
 
-            {isWatchlistOpen && (
-              <>
-                {watchlist.length === 0 ? (
-                  <div className="text-center py-4 text-zinc-500 text-xs">
-                    No addresses in watchlist
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {sortedWatchlist.map((item) => {
-                      const trader = watchlistData[item.address];
-                      return (
-                        <div 
-                          key={item.address}
-                          className={`bg-zinc-800/50 rounded-lg p-2 cursor-pointer transition-colors ${
-                            selectedTrader === item.address ? 'ring-1 ring-blue-500' : ''
-                          }`}
-                          onClick={() => setSelectedTrader(item.address)}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-zinc-100 font-mono">
-                                {item.address.slice(0, 6)}...{item.address.slice(-4)}
-                              </span>
-                              <a 
-                                href={`https://etherscan.io/address/${item.address}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-zinc-500 hover:text-zinc-400 flex-shrink-0"
-                                title={item.address}
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveFromWatchlist(item.address)}
-                              className="text-xs text-red-400 hover:text-red-300"
+          {isWatchlistOpen && (
+            <>
+              {watchlist.length === 0 ? (
+                <div className="text-center py-4 text-zinc-500 text-xs">
+                  No addresses in watchlist
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sortedWatchlist.map((item) => {
+                    const trader = watchlistData[item.address];
+                    return (
+                      <div 
+                        key={item.address}
+                        className={`bg-zinc-800/50 rounded-lg p-2 cursor-pointer transition-colors ${
+                          selectedTrader === item.address ? 'ring-1 ring-blue-500' : ''
+                        }`}
+                        onClick={() => setSelectedTrader(item.address)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-100 font-mono">
+                              {item.address.slice(0, 6)}...{item.address.slice(-4)}
+                            </span>
+                            <a 
+                              href={`https://etherscan.io/address/${item.address}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-zinc-500 hover:text-zinc-400 flex-shrink-0"
+                              title={item.address}
                             >
-                              Remove
-                            </button>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
-                          <div className="grid grid-cols-4 gap-2 text-[11px] mb-2">
-                            <div>
-                              <div className="text-zinc-500">Volume</div>
-                              <div className="text-zinc-300">
-                                {trader?.totalVolume || item.lastVolume || '-'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">P/L</div>
-                              <div className={`${
-                                (trader?.profitLoss || item.lastProfitLoss || '').startsWith('+') 
-                                  ? 'text-green-400' 
-                                  : 'text-red-400'
-                              }`}>
-                                {trader?.profitLoss || item.lastProfitLoss || '-'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">Win Rate</div>
-                              <div className="text-zinc-300">
-                                {trader?.winRate || item.lastWinRate || '-'}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">Trades</div>
-                              <div className="text-zinc-300">
-                                {trader?.trades || item.trades || '-'}
-                              </div>
+                          <button
+                            onClick={() => handleRemoveFromWatchlist(item.address)}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-[11px] mb-2">
+                          <div>
+                            <div className="text-zinc-500">Volume</div>
+                            <div className="text-zinc-300">
+                              {trader?.totalVolume || item.lastVolume || '-'}
                             </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-2 text-[11px] border-t border-zinc-800 pt-2">
-                            <div>
-                              <div className="text-zinc-500">1H Change</div>
-                              <div className={`${
-                                (item.priceChanges?.hour || 0) > 0 ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {item.priceChanges?.hour.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">24H Change</div>
-                              <div className={`${
-                                (item.priceChanges?.day || 0) > 0 ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {item.priceChanges?.day.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">7D Change</div>
-                              <div className={`${
-                                (item.priceChanges?.week || 0) > 0 ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {item.priceChanges?.week.toFixed(1)}%
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-zinc-500">Last Active</div>
-                              <div className="text-zinc-300">
-                                {trader?.lastActive || item.lastActive || '-'}
-                              </div>
+                          <div>
+                            <div className="text-zinc-500">P/L</div>
+                            <div className={`${
+                              (trader?.profitLoss || item.lastProfitLoss || '').startsWith('+') 
+                                ? 'text-green-400' 
+                                : 'text-red-400'
+                            }`}>
+                              {trader?.profitLoss || item.lastProfitLoss || '-'}
                             </div>
                           </div>
-                          <div className="mt-2 text-[10px] text-zinc-500 flex justify-between items-center">
-                            <span>Added {new Date(item.addedAt).toLocaleDateString()}</span>
-                            {lastRefresh && (
-                              <span>Updated {new Date(lastRefresh).toLocaleTimeString()}</span>
-                            )}
+                          <div>
+                            <div className="text-zinc-500">Win Rate</div>
+                            <div className="text-zinc-300">
+                              {trader?.winRate || item.lastWinRate || '-'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-zinc-500">Trades</div>
+                            <div className="text-zinc-300">
+                              {trader?.trades || item.trades || '-'}
+                            </div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+                        <div className="grid grid-cols-4 gap-2 text-[11px] border-t border-zinc-800 pt-2">
+                          <div>
+                            <div className="text-zinc-500">1H Change</div>
+                            <div className={`${
+                              (item.priceChanges?.hour || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {item.priceChanges?.hour.toFixed(1)}%
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-zinc-500">24H Change</div>
+                            <div className={`${
+                              (item.priceChanges?.day || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {item.priceChanges?.day.toFixed(1)}%
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-zinc-500">7D Change</div>
+                            <div className={`${
+                              (item.priceChanges?.week || 0) > 0 ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {item.priceChanges?.week.toFixed(1)}%
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-zinc-500">Last Active</div>
+                            <div className="text-zinc-300">
+                              {trader?.lastActive || item.lastActive || '-'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-2 text-[10px] text-zinc-500 flex justify-between items-center">
+                          <span>Added {new Date(item.addedAt).toLocaleDateString()}</span>
+                          {lastRefresh && (
+                            <span>Updated {new Date(lastRefresh).toLocaleTimeString()}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-        {/* Right Sidebar */}
-        <aside className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        {/* Bottom Section - Trade History (Full Width) */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
           <TradeDetailsTracker address={selectedTrader} />
-        </aside>
+        </div>
       </div>
     </div>
   );
