@@ -311,7 +311,10 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
           '7d': 168
         }[filters.timeframe];
         
-        if ((Date.now() - trade.timestamp) > hours * 3600000) {
+        const timeDiff = Date.now() - trade.timestamp;
+        const hoursDiff = timeDiff / (1000 * 60 * 60); // Convert ms to hours
+        
+        if (hoursDiff > hours) {
           return false;
         }
       }
@@ -326,13 +329,19 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
         return false;
       }
 
-      // Amount filter
-      const amount = parseFloat(trade.amount.split(' ')[0]);
-      if (amount < filters.minAmount) {
-        return false;
+      // Amount filter (if needed)
+      if (filters.minAmount > 0) {
+        const [amount] = trade.amount.split(' ');
+        const numAmount = parseFloat(amount);
+        if (isNaN(numAmount) || numAmount < filters.minAmount) {
+          return false;
+        }
       }
 
       return true;
+    }).sort((a, b) => {
+      // Always sort by timestamp descending (newest first)
+      return b.timestamp - a.timestamp;
     });
   }, [trades, filters]);
 
@@ -340,12 +349,19 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
     if (!groupByToken) return null;
 
     const groups = new Map<string, Trade[]>();
+    
+    // First group the trades
     filteredTrades.forEach(trade => {
       const token = trade.token || 'Unknown';
       if (!groups.has(token)) {
         groups.set(token, []);
       }
       groups.get(token)!.push(trade);
+    });
+
+    // Then sort each group's trades by timestamp
+    groups.forEach((trades, _token) => {
+      trades.sort((a, b) => b.timestamp - a.timestamp);
     });
 
     return groups;
@@ -650,7 +666,7 @@ export const TradeDetailsTracker = ({ address }: TradeDetailsProps) => {
       {/* Chart Modal */}
       {selectedPairTrade && (
         <TradingChart
-          token={selectedPairTrade.token || 'ETH'}
+          token={selectedPairTrade.token?.replace('WETH', 'ETH') || 'ETH'}
           trade={selectedPairTrade}
           onClose={() => setSelectedPairTrade(null)}
         />

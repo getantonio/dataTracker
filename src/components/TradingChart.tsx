@@ -15,9 +15,20 @@ export const TradingChart = ({ token, trade, onClose }: TradingChartProps) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  console.log('TradingChart rendering:', { token, trade });
+
+  if (!token) {
+    return (
+      <div className="h-[400px] flex items-center justify-center text-red-400 text-sm">
+        Invalid token symbol
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (!chartContainerRef.current) return;
-
+    
+    console.log('Creating chart...');
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 400,
@@ -61,10 +72,12 @@ export const TradingChart = ({ token, trade, onClose }: TradingChartProps) => {
       setLoading(true);
       setError(null);
       try {
+        console.log('Fetching price data for:', token);
         const response = await fetch(
           `https://min-api.cryptocompare.com/data/v2/histohour?fsym=${token}&tsym=USDT&limit=168`
         );
         const data = await response.json();
+        console.log('Price data response:', data);
 
         if (data.Response === 'Error') {
           throw new Error(data.Message);
@@ -78,6 +91,7 @@ export const TradingChart = ({ token, trade, onClose }: TradingChartProps) => {
           close: d.close,
         }));
 
+        console.log('Processed candle data:', candleData.length, 'candles');
         candlestickSeries.setData(candleData);
         candlestickSeries.setMarkers(markers);
 
@@ -108,6 +122,7 @@ export const TradingChart = ({ token, trade, onClose }: TradingChartProps) => {
     window.addEventListener('resize', handleResize);
 
     return () => {
+      console.log('Cleaning up chart...');
       window.removeEventListener('resize', handleResize);
       if (chartRef.current) {
         chartRef.current.remove();
@@ -140,7 +155,7 @@ export const TradingChart = ({ token, trade, onClose }: TradingChartProps) => {
             {error}
           </div>
         ) : (
-          <div ref={chartContainerRef} />
+          <div ref={chartContainerRef} className="h-[400px] w-full" />
         )}
 
         <div className="mt-4 text-xs text-zinc-500">
